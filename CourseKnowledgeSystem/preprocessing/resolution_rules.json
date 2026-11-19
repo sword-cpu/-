@@ -1,0 +1,167 @@
+[
+  {
+    "source_name": "码的分类",
+    "source_level": 4,
+    "field": "关联知识点",
+    "raw_target": "变长编码定理",
+    "target_name": "变长码编码定理",
+    "target_level": 4,
+    "method": "名称规范化规则",
+    "reason": "表内唯一同类定理；其前置字段写有定长编码定理，支持该名称对应。保留原文，不修改Excel。",
+    "enabled": true
+  },
+  {
+    "source_name": "定长编码定理",
+    "source_level": 4,
+    "field": "后置知识点",
+    "raw_target": "变长编码定理",
+    "target_name": "变长码编码定理",
+    "target_level": 4,
+    "method": "名称规范化规则",
+    "reason": "表内唯一同类定理；其前置字段写有定长编码定理，支持该名称对应。保留原文，不修改Excel。",
+    "enabled": true
+  },
+  {
+    "source_name": "Kraft与McMillan不等式",
+    "source_level": 4,
+    "field": "关联知识点",
+    "raw_target": "变长编码定理",
+    "target_name": "变长码编码定理",
+    "target_level": 4,
+    "method": "名称规范化规则",
+    "reason": "表内唯一同类定理；其前置字段写有定长编码定理，支持该名称对应。保留原文，不修改Excel。",
+    "enabled": true
+  },
+  {
+    "source_name": "唯一可译码判别准则",
+    "source_level": 4,
+    "field": "后置知识点",
+    "raw_target": "变长编码定理",
+    "target_name": "变长码编码定理",
+    "target_level": 4,
+    "method": "名称规范化规则",
+    "reason": "表内唯一同类定理；其前置字段写有定长编码定理，支持该名称对应。保留原文，不修改Excel。",
+    "enabled": true
+  },
+  {
+    "source_name": "费诺编码",
+    "source_level": 4,
+    "field": "后置知识点",
+    "raw_target": "流程编码",
+    "target_name": "游程编码",
+    "target_level": 4,
+    "method": "上下文建模规则",
+    "reason": "实用编码章节存在游程编码，未列出流程编码；按编码方法名称建立显式别名。这是建模选择，不是教师新增确认。",
+    "enabled": true
+  },
+  {
+    "source_name": "连续信源",
+    "source_level": 3,
+    "field": "后置知识点",
+    "raw_target": "连续信源与波形信道",
+    "target_name": "连续信道与波形信道",
+    "target_level": 3,
+    "method": "上下文建模规则",
+    "reason": "表内该信道单元的子节点含连续信道的互信息；来源行关联字段也引用该子节点。按此上下文建立对应，保留原词。",
+    "enabled": true
+  },
+  {
+    "source_name": "马尔可夫信源及特征",
+    "source_level": 4,
+    "field": "后置知识点",
+    "raw_target": "状态转移图与极限熵",
+    "target_name": "状态转移图及转移矩阵",
+    "target_level": 4,
+    "method": "反向字段建模规则",
+    "reason": "状态转移图及转移矩阵的前置明确列出马尔可夫信源及特征；按此已有反向记录解析混合名称，不额外推断其同时指向极限熵节点。",
+    "enabled": true
+  },
+  {
+    "source_name": "有噪信道编码定理",
+    "source_level": 3,
+    "field": "前置知识点",
+    "raw_target": "信道编码概率",
+    "target_name": "信道编码概念",
+    "target_level": 3,
+    "method": "反向字段建模规则",
+    "reason": "信道编码概念的后置明确列出有噪信道编码定理，说明包含错误概率；按此已有关系解释原词，属显式建模规则。",
+    "enabled": true
+  },
+  {
+    "source_name": "波形信道及其容量",
+    "source_level": 4,
+    "field": "关联知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 4,
+    "method": "层级语义建模规则",
+    "reason": "四级具体知识点引用函数定义，映射到四级定义节点；三级同名节点保留为单元。",
+    "enabled": true
+  },
+  {
+    "source_name": "失真测度",
+    "source_level": 3,
+    "field": "后置知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 3,
+    "method": "反向字段消歧",
+    "reason": "三级同名节点的前置明确列出失真测度。",
+    "enabled": true
+  },
+  {
+    "source_name": "平均失真",
+    "source_level": 4,
+    "field": "关联知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 4,
+    "method": "层级语义建模规则",
+    "reason": "四级知识点引用具体函数定义，映射到四级定义节点；属于显式建模选择。",
+    "enabled": true
+  },
+  {
+    "source_name": "D失真许可信道",
+    "source_level": 4,
+    "field": "后置知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 4,
+    "method": "反向字段消歧",
+    "reason": "四级同名节点的前置明确列出D失真许可信道。",
+    "enabled": true
+  },
+  {
+    "source_name": "信息率失真函数性质",
+    "source_level": 4,
+    "field": "前置知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 4,
+    "method": "反向字段消歧",
+    "reason": "四级同名节点的后置明确列出信息率失真函数性质。",
+    "enabled": true
+  },
+  {
+    "source_name": "限失真信源编码定理与逆定理",
+    "source_level": 3,
+    "field": "前置知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 3,
+    "method": "反向字段消歧",
+    "reason": "三级同名节点的后置明确列出限失真信源编码定理与逆定理。",
+    "enabled": true
+  },
+  {
+    "source_name": "熵压缩编码方法",
+    "source_level": 3,
+    "field": "前置知识点",
+    "raw_target": "信息率失真函数",
+    "target_name": "信息率失真函数",
+    "target_level": 3,
+    "method": "层级语义建模规则",
+    "reason": "三级方法单元引用三级函数单元作为基础；保留两个同名实体，按单元粒度显式选择。",
+    "enabled": true
+  }
+]
