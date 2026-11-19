@@ -307,9 +307,9 @@ elif page == "数据一致性检查":
     if issues.empty:
         st.success("当前异常清单为空。")
     else:
-        issue_types = sorted(issues.issue_type.unique().tolist())
+        issue_types = sorted(issues["问题类型"].unique().tolist())
         selected_types = st.multiselect("筛选问题类型", issue_types, default=issue_types)
-        visible = issues[issues.issue_type.isin(selected_types)]
+        visible = issues[issues["问题类型"].isin(selected_types)].copy()
         st.caption(f"显示 {len(visible)} / {len(issues)} 条异常记录")
         st.dataframe(visible, hide_index=True, alt="课程知识数据一致性检查问题清单", height=560)
     st.download_button("下载数据一致性检查清单", issues.to_csv(index=False).encode("utf-8-sig"), "issues.csv", "text/csv")
