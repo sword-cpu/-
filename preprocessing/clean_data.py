@@ -18,6 +18,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "data" / "raw" / "信息科学基础-课程知识点.xlsx"
 OUTPUT = ROOT / "data" / "processed"
+RULES = Path(__file__).with_name("resolution_rules.json")
 LEVEL_COLS = [f"{s}级知识点" for s in "一二三四五六七"]
 ATTR_COLS = ["标签", "认知维度", "分类", "教学目标", "知识点说明"]
 REL_COLS = ["前置知识点", "后置知识点", "关联知识点"]
@@ -53,6 +54,8 @@ def main() -> None:
 
     nodes: list[dict] = []
     issues: list[dict] = []
+    resolution_log: list[dict] = []
+    rules = json.loads(RULES.read_text(encoding="utf-8")) if RULES.exists() else []
     last_seen: dict[int, str] = {}
     name_to_ids: defaultdict[str, list[str]] = defaultdict(list)
 
@@ -97,11 +100,12 @@ def main() -> None:
 
     for name, ids in name_to_ids.items():
         if len(ids) > 1:
-            issue("知识点同名", ",".join(ids), name, "知识点名称", name, "名称重复，但ID不同；涉及该名称的跨节点关系须人工确认")
+            issue("知识点同名", ",".join(ids), name, "知识点名称", name,
+                  "名称重复，按课程层级保留不同节点ID；检查关系引用时使用节点路径区分")
 
     edges_by_key: dict[tuple[str, str, str], dict] = {}
 
-    def add_edge(src: str, dst: str, relation: str, origin: str, status: str = "待核验") -> None:
+    def add_edge(src: str, dst: str, relation: str, origin: str, status: str = "单字段记录") -> None:
         # 关联关系按无向关系处理，其余关系保留方向。
         if relation == "关联关系":
             src, dst = sorted((src, dst))
@@ -112,7 +116,7 @@ def main() -> None:
                 "target_id": dst,
                 "relation_type": relation,
                 "source_columns": set(),
-                "review_status": status,
+                "field_consistency": status,
             }
         edges_by_key[key]["source_columns"].add(origin)
 
@@ -123,11 +127,34 @@ def main() -> None:
         for col in REL_COLS:
             for target_name in split_names(node["_relations"][col]):
                 target_ids = name_to_ids.get(target_name, [])
+                method = "名称唯一匹配"
+                reason = ""
+                if len(target_ids) != 1:
+                    matches = [rule for rule in rules if rule["source_name"] == node["name"]
+                               and rule["source_level"] == node["level"] and rule["field"] == col
+                               and rule["raw_target"] == target_name and rule.get("enabled", True)]
+                    if len(matches) == 1:
+                        rule = matches[0]
+                        resolved = [n["id"] for n in nodes if n["name"] == rule["target_name"]
+                                    and n["level"] == rule["target_level"]]
+                        if len(resolved) == 1:
+                            target_ids = resolved
+                            method = rule["method"]
+                            reason = rule["reason"]
+                resolution_log.append({"原表行号": node["excel_row"], "来源ID": src_id,
+                                       "来源知识点": node["name"], "字段": col, "原始目标名称": target_name,
+                                       "目标ID": target_ids[0] if len(target_ids) == 1 else "",
+                                       "目标名称": next((n["name"] for n in nodes if len(target_ids) == 1 and n["id"] == target_ids[0]), ""),
+                                       "目标层级": next((n["level"] for n in nodes if len(target_ids) == 1 and n["id"] == target_ids[0]), ""),
+                                       "处理方式": method if len(target_ids) == 1 else "未唯一解析",
+                                       "依据": reason})
                 if len(target_ids) == 0:
-                    issue("关系指向未知知识点", src_id, node["name"], col, target_name, "未找到对应节点，未创建该关系")
+                    issue("关系目标未进入层级节点", src_id, node["name"], col, target_name,
+                          "保留表格原始引用；目标不在层级节点表中，因此未自动连入节点网络")
                     continue
                 if len(target_ids) > 1:
-                    issue("关系目标存在歧义", src_id, node["name"], col, target_name, "目标存在多个同名知识点，未自动选取")
+                    issue("关系目标对应多个节点", src_id, node["name"], col, target_name,
+                          "保留表格原始引用；目标名称对应多个节点ID，因此未自动选取")
                     continue
                 target_id = target_ids[0]
                 if src_id == target_id:
@@ -144,32 +171,40 @@ def main() -> None:
 
     for edge in edges_by_key.values():
         if edge["relation_type"] == "先修关系":
-            # 双字段互相印证，只表明录入一致；仍不等于教师审核通过。
             two_sides = {"前置知识点", "后置知识点"}.issubset(edge["source_columns"])
-            edge["review_status"] = "字段双向一致(待教师核验)" if two_sides else "仅单侧记录(待教师核验)"
+            if two_sides:
+                edge["field_consistency"] = "前置与后置字段均有记录"
+            elif "前置知识点" in edge["source_columns"]:
+                edge["field_consistency"] = "仅前置知识字段有记录"
+            else:
+                edge["field_consistency"] = "仅后置知识字段有记录"
         edge["source_columns"] = ";".join(sorted(edge["source_columns"]))
 
     graph = nx.DiGraph()
     graph.add_nodes_from(node["id"] for node in nodes)
     graph.add_edges_from((edge["source_id"], edge["target_id"])
                          for edge in edges_by_key.values() if edge["relation_type"] == "先修关系")
-    # 仅输出前20个环的样例，避免含环图无限扩张式枚举。
-    sampled_cycles = []
-    for cycle in nx.simple_cycles(graph):
-        sampled_cycles.append(cycle)
-        issue("先修关系成环", ",".join(cycle), "", "先修关系", "→".join(cycle + [cycle[0]]), "先修依赖形成有向环，须人工检查关系语义")
-        if len(sampled_cycles) >= 20:
-            break
+    # 按强连通分量报告循环结构，避免把互相重叠的简单环重复列为多个问题。
+    cyclic_components = [component for component in nx.strongly_connected_components(graph)
+                         if len(component) > 1 or any(graph.has_edge(node, node) for node in component)]
+    cyclic_nodes: set[str] = set()
+    for component in cyclic_components:
+        cyclic_nodes.update(component)
+        internal_edges = sorted((src, dst) for src, dst in graph.subgraph(component).edges())
+        edge_text = ";".join(f"{src}→{dst}" for src, dst in internal_edges)
+        issue("先修网络循环结构", ",".join(sorted(component)), "", "先修关系", edge_text,
+              f"此循环结构包含{len(component)}个节点和{len(internal_edges)}条内部关系；按表格保留原关系，不自动删除或反转")
 
     node_export = [{k: v for k, v in node.items() if k != "_relations"} for node in nodes]
     edge_export = list(edges_by_key.values())
     pd.DataFrame(node_export).to_csv(OUTPUT / "nodes.csv", index=False, encoding="utf-8-sig")
-    pd.DataFrame(edge_export, columns=["source_id", "target_id", "relation_type", "source_columns", "review_status"]).to_csv(
+    pd.DataFrame(edge_export, columns=["source_id", "target_id", "relation_type", "source_columns", "field_consistency"]).to_csv(
         OUTPUT / "edges.csv", index=False, encoding="utf-8-sig"
     )
     pd.DataFrame(issues, columns=["问题类型", "节点ID", "知识点", "字段", "原始值", "说明"]).to_csv(
         OUTPUT / "issues.csv", index=False, encoding="utf-8-sig"
     )
+    pd.DataFrame(resolution_log).to_csv(OUTPUT / "relation_resolution.csv", index=False, encoding="utf-8-sig")
     from collections import Counter
     summary = {
         "原始记录数": len(df),
@@ -180,8 +215,11 @@ def main() -> None:
         "异常记录数": len(issues),
         "异常类型统计": dict(sorted(Counter(i["问题类型"] for i in issues).items())),
         "先修关系是否无环": nx.is_directed_acyclic_graph(graph),
-        "环示例数量(最多20)": len(sampled_cycles),
-        "备注": "15视作空值；重复名称的目标关系不自动消歧；先修边不代表已经教师审核。",
+        "先修循环结构组数": len(cyclic_components),
+        "先修循环涉及节点数": len(cyclic_nodes),
+        "规则解析引用数": sum(r["处理方式"] not in {"名称唯一匹配", "未唯一解析"} for r in resolution_log),
+        "未唯一解析引用数": sum(r["处理方式"] == "未唯一解析" for r in resolution_log),
+        "备注": "15视作占位值；名称映射与消歧按resolution_rules.json显式建模规则执行，可查relation_resolution.csv；规则不等于教师新增确认；循环保留。",
     }
     (OUTPUT / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print("===== 知识图谱数据预处理完成 =====")
